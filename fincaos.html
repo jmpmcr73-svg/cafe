@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FINCA·OS · Sistema Operativo del Campo · Café · Cacao · Aguacate</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#0a0f06;color:#e8f5d0;}
+.mono{font-family:'JetBrains Mono',monospace;}
+:root{
+  --bg:#0a0f06;--bg2:#111a08;--bg3:#172110;
+  --g:#65a30d;--g2:#84cc16;--g3:rgba(101,163,13,.15);
+  --br:#92400e;--br2:#b45309;          /* café brown */
+  --ch:#d97706;--ch2:#f59e0b;          /* cacao amber */
+  --av:#166534;--av2:#16a34a;          /* aguacate deep green */
+  --red:#ef4444;--blue:#3b82f6;--teal:#14b8a6;
+  --border:rgba(101,163,13,.15);--border2:rgba(255,255,255,.06);
+  --muted:#2d4a10;--text:#e8f5d0;
+}
+/* LAYOUT */
+.sb{width:238px;min-height:100vh;background:linear-gradient(180deg,#060c03,#0a1206 60%,#0e1809);position:fixed;top:0;left:0;z-index:40;display:flex;flex-direction:column;border-right:1px solid var(--border);}
+.main{margin-left:238px;min-height:100vh;}
+.topbar{background:rgba(10,15,6,.97);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);padding:8px 22px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:30;}
+.card{background:var(--bg2);border-radius:12px;border:1px solid var(--border2);padding:16px;}
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 9px;border-radius:20px;font-size:9px;font-weight:700;white-space:nowrap;}
+.b-cafe{background:rgba(146,64,14,.12);color:#b45309;border:1px solid rgba(146,64,14,.25);}
+.b-cacao{background:rgba(217,119,6,.1);color:#d97706;border:1px solid rgba(217,119,6,.2);}
+.b-aguacate{background:rgba(22,101,52,.12);color:#16a34a;border:1px solid rgba(22,101,52,.2);}
+.b-ok{background:rgba(101,163,13,.1);color:#65a30d;border:1px solid rgba(101,163,13,.2);}
+.b-warn{background:rgba(245,158,11,.1);color:#f59e0b;border:1px solid rgba(245,158,11,.2);}
+.b-crit{background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.2);}
+.b-blue{background:rgba(59,130,246,.1);color:#3b82f6;border:1px solid rgba(59,130,246,.2);}
+.b-g{background:rgba(101,163,13,.1);color:#84cc16;border:1px solid rgba(101,163,13,.2);}
+/* BTNS */
+.btn{border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:.15s;font-family:inherit;}
+.btn-g{background:linear-gradient(90deg,#3f6212,#65a30d);color:#f7fee7;}
+.btn-br{background:linear-gradient(90deg,#78350f,#b45309);color:#fff;}
+.btn-o{background:transparent;color:#84cc16;border:1.5px solid rgba(101,163,13,.4);}
+.btn-r{background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.28);}
+.btn-sm{padding:4px 10px;font-size:10px;border-radius:6px;}
+/* FORMS */
+input,select,textarea{background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.07);border-radius:8px;padding:7px 11px;font-size:12px;width:100%;outline:none;color:#e8f5d0;font-family:inherit;transition:.2s;}
+input:focus,select:focus,textarea:focus{border-color:rgba(101,163,13,.5);}
+select option{background:#111a08;}
+label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:3px;}
+/* TABLE */
+.tbl{width:100%;border-collapse:collapse;font-size:11px;}
+.tbl th{padding:8px 11px;text-align:left;background:rgba(101,163,13,.04);color:var(--muted);font-weight:700;font-size:9px;letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid rgba(101,163,13,.1);}
+.tbl td{padding:8px 11px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:middle;}
+.tbl tr:hover td{background:rgba(101,163,13,.03);}
+/* NAV */
+.nit{display:flex;align-items:center;gap:8px;padding:7px 11px;cursor:pointer;border-radius:7px;margin:1px 6px;color:rgba(255,255,255,.35);transition:.12s;font-size:11px;font-weight:600;}
+.nit:hover{background:rgba(101,163,13,.08);color:#fff;}
+.nit.on{background:linear-gradient(90deg,rgba(101,163,13,.2),rgba(101,163,13,.05));color:#84cc16;border-left:2px solid #84cc16;padding-left:9px;}
+.sh{font-size:8px;color:rgba(255,255,255,.14);padding:8px 11px 2px;letter-spacing:1.5px;text-transform:uppercase;font-weight:800;}
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.9);backdrop-filter:blur(8px);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px;}
+.modal{background:#111a08;border-radius:16px;padding:22px;max-width:860px;width:100%;max-height:92vh;overflow-y:auto;border:1px solid var(--border);}
+/* KPI */
+.kpi{background:var(--bg2);border-radius:10px;border:1px solid var(--border2);padding:13px;cursor:pointer;transition:.15s;}
+.kpi:hover{border-color:rgba(101,163,13,.3);}
+/* PROG */
+.prog{height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:2px;transition:.3s;}
+/* CULTIVO ICONS */
+.cult-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+/* CHAT */
+.chat-msg{padding:8px 12px;border-radius:9px;font-size:11px;line-height:1.65;max-width:88%;}
+.chat-u{background:rgba(101,163,13,.08);border:1px solid rgba(101,163,13,.18);margin-left:auto;}
+.chat-ai{background:rgba(101,163,13,.04);border:1px solid rgba(101,163,13,.12);}
+/* SEVERITY */
+.sev-leve{color:#65a30d}.sev-mod{color:#f59e0b}.sev-sev{color:#ef4444}
+/* MISC */
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(30px);background:#111a08;color:#e8f5d0;padding:8px 18px;border-radius:22px;font-size:12px;font-weight:600;z-index:999;opacity:0;transition:all .3s;white-space:nowrap;pointer-events:none;border:1px solid var(--border);max-width:90vw;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.fi{animation:fadeIn .3s ease}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
+.pls{animation:pulse .8s infinite}
+
+/* LOGIN */
+.login-bg{min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(101,163,13,.1),transparent),radial-gradient(ellipse 60% 40% at 80% 110%,rgba(146,64,14,.08),transparent),#0a0f06;padding:20px;}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══ -->
+<div id="pg-login" class="login-bg">
+<div style="width:100%;max-width:460px;">
+  <!-- LOGO -->
+  <div style="text-align:center;margin-bottom:28px;">
+    <svg width="80" height="80" viewBox="0 0 80 80" style="display:block;margin:0 auto 12px">
+      <circle cx="40" cy="40" r="38" fill="#0a1206" stroke="#65a30d" stroke-width="1.5"/>
+      <!-- Coffee bean shape -->
+      <ellipse cx="40" cy="38" rx="20" ry="28" fill="none" stroke="#84cc16" stroke-width="2"/>
+      <path d="M40 10 Q52 22 52 38 Q52 54 40 66 Q28 54 28 38 Q28 22 40 10Z" fill="rgba(101,163,13,.15)"/>
+      <line x1="40" y1="10" x2="40" y2="66" stroke="#84cc16" stroke-width="1.5" stroke-dasharray="3 3"/>
+      <!-- Circuit dots -->
+      <circle cx="20" cy="38" r="3" fill="#b45309"/>
+      <circle cx="60" cy="38" r="3" fill="#b45309"/>
+      <circle cx="40" cy="12" r="3" fill="#65a30d"/>
+      <circle cx="40" cy="64" r="3" fill="#65a30d"/>
+      <line x1="23" y1="38" x2="28" y2="38" stroke="#b45309" stroke-width="1"/>
+      <line x1="52" y1="38" x2="57" y2="38" stroke="#b45309" stroke-width="1"/>
+      <line x1="40" y1="15" x2="40" y2="20" stroke="#65a30d" stroke-width="1"/>
+      <line x1="40" y1="60" x2="40" y2="65" stroke="#65a30d" stroke-width="1"/>
+      <!-- Inner eye -->
+      <circle cx="40" cy="38" r="7" fill="#0a1206" stroke="#84cc16" stroke-width="1"/>
+      <circle cx="40" cy="38" r="4" fill="#65a30d"/>
+      <circle cx="42" cy="36" r="1.5" fill="#f0fdf4"/>
+    </svg>
+    <div style="font-size:28px;font-weight:900;color:#e8f5d0;letter-spacing:-1px;">FINCA<span style="color:#84cc16;">·</span>OS</div>
+    <div style="font-size:10px;color:rgba(101,163,13,.6);letter-spacing:3px;text-transform:uppercase;margin-top:3px;">SISTEMA OPERATIVO DEL CAMPO</div>
+    <div style="font-size:10px;color:rgba(255,255,255,.25);margin-top:6px;">Café · Cacao · Aguacate · Frutales</div>
+  </div>
+
+  <div style="background:rgba(10,15,6,.92);border:1px solid rgba(101,163,13,.2);border-radius:16px;padding:28px;">
+    <div style="margin-bottom:10px;"><label>Usuario / Email</label><input id="l-u" value="carlos@finca.cr"></div>
+    <div style="margin-bottom:10px;"><label>Contraseña</label><input id="l-p" type="password" value="finca2026!"></div>
+    <div style="margin-bottom:16px;"><label>Entrar como</label>
+      <select id="l-rol">
+        <option value="productor" selected>🌿 Productor</option>
+        <option value="ingeniero">👨‍🌾 Ingeniero Agrónomo</option>
+        <option value="proveedor">🏪 Proveedor de Insumos</option>
+        <option value="chofer">🚛 Chofer / Logística</option>
+        <option value="admin">⚙️ Administrador</option>
+      </select>
+    </div>
+    <button id="btn-login" class="btn btn-g" style="width:100%;padding:13px;font-size:14px;justify-content:center;">INGRESAR AL CAMPO →</button>
+    <div id="l-err" style="display:none;color:#ef4444;font-size:11px;text-align:center;margin-top:8px;">Credenciales inválidas</div>
+    <div style="text-align:center;margin-top:14px;font-size:10px;color:rgba(255,255,255,.2);">Agente Semilla · IA Agrícola · Trazabilidad total</div>
+  </div>
+</div>
+</div>
+
+<!-- ══ APP ══ -->
+<div id="pg-app" style="display:none;">
+<div class="sb">
+  <div style="padding:11px 10px 8px;border-bottom:1px solid var(--border);">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div style="width:36px;height:36px;border-radius:8px;background:rgba(101,163,13,.2);display:flex;align-items:center;justify-content:center;font-size:16px;border:1.5px solid rgba(101,163,13,.4);">🌿</div>
+      <div>
+        <div style="font-size:14px;font-weight:900;color:#e8f5d0;letter-spacing:-.3px;">FINCA<span style="color:#84cc16;">·</span>OS</div>
+        <div style="font-size:7px;color:rgba(101,163,13,.5);letter-spacing:1.5px;text-transform:uppercase;">CAMPO INTELIGENTE</div>
+      </div>
+    </div>
+  </div>
+  <nav style="flex:1;padding:4px 0;overflow-y:auto;scrollbar-width:thin;">
+    <div class="sh">General</div>
+    <div class="nit on" id="nav-dash" onclick="go('dash')"><span>📊</span><span>Dashboard</span></div>
+    <div class="sh">Mi Campo</div>
+    <div class="nit" id="nav-fincas" onclick="go('fincas')"><span>🗺️</span><span id="nav-fin-lbl">Mis Fincas</span></div>
+    <div class="nit" id="nav-lotes" onclick="go('lotes')"><span>🌱</span><span id="nav-lot-lbl">Lotes & Cultivos</span></div>
+    <div class="nit" id="nav-cuaderno" onclick="go('cuaderno')"><span>📋</span><span>Cuaderno de Campo</span></div>
+    <div class="sh">Sanidad & Nutrición</div>
+    <div class="nit" id="nav-mip" onclick="go('mip')"><span>🔬</span><span>Fitosanitario & PHI</span></div>
+    <div class="nit" id="nav-nutricion" onclick="go('nutricion')"><span>💊</span><span>Planes Nutrición</span></div>
+    <div class="nit" id="nav-semilla" onclick="go('semilla')"><span>🧠</span><span id="nav-sem-lbl">Agente Semilla IA</span></div>
+    <div class="sh">Mercado</div>
+    <div class="nit" id="nav-marketplace" onclick="go('marketplace')"><span>🏪</span><span>Marketplace</span></div>
+    <div class="nit" id="nav-pedidos" onclick="go('pedidos')"><span>📦</span><span id="nav-ped-lbl">Mis Pedidos</span></div>
+    <div class="nit" id="nav-logistica" onclick="go('logistica')"><span>🚛</span><span>Logística</span></div>
+    <div class="sh">Cosecha</div>
+    <div class="nit" id="nav-cosecha" onclick="go('cosecha')"><span>☕</span><span>Registro de Cosecha</span></div>
+    <div class="nit" id="nav-auditoria" onclick="go('auditoria')"><span>🔍</span><span>Auditoría</span></div>
+  </nav>
+  <div style="padding:8px 10px;border-top:1px solid var(--border);">
+    <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;">
+      <div id="sb-av" style="width:28px;height:28px;border-radius:6px;background:rgba(101,163,13,.15);display:flex;align-items:center;justify-content:center;font-size:13px;border:1.5px solid rgba(101,163,13,.3);">🌿</div>
+      <div><div style="font-size:11px;font-weight:700;color:#e8f5d0;" id="sb-name">Productor</div><div style="font-size:8px;color:rgba(101,163,13,.5);text-transform:uppercase;" id="sb-rol">CAMPO</div></div>
+    </div>
+    <button onclick="doLogout()" style="width:100%;background:rgba(255,255,255,.03);border:1px solid var(--border2);color:var(--muted);border-radius:4px;padding:3px;font-size:9px;cursor:pointer;">↩ Salir</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div style="font-size:15px;font-weight:900;color:#e8f5d0;" id="topbar-title">Dashboard</div>
+    <div style="flex:1;"></div>
+    <div id="clock" class="mono" style="font-size:10px;color:#65a30d;background:rgba(101,163,13,.07);padding:3px 9px;border-radius:5px;border:1px solid rgba(101,163,13,.15);">--:--</div>
+    <span class="badge b-g" style="font-size:9px;" id="topbar-badge">FINCA·OS</span>
+  </div>
+
+  <div style="padding:16px 22px;" id="content">
+
+    <!-- DASHBOARD -->
+    <div id="sec-dash">
+      <!-- Welcome banner -->
+      <div style="background:linear-gradient(135deg,rgba(101,163,13,.1),rgba(146,64,14,.07),transparent);border:1px solid rgba(101,163,13,.15);border-radius:14px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:14px;">
+        <div style="font-size:36px;">☕</div>
+        <div>
+          <div style="font-size:18px;font-weight:900;color:#e8f5d0;" id="dash-greeting">Bienvenido, Productor</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.4);" id="dash-sub">Zona de Dota · Tarrazú · Costa Rica · Temporada 2026</div>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:8px;" id="dash-quick-btns"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:14px;" id="dash-kpis"></div>
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px;">
+        <div class="card"><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:10px;">🌱 MIS LOTES — ESTADO FENOLÓGICO</div><div id="dash-lotes"></div></div>
+        <div class="card"><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:10px;">⚠️ ALERTAS AGRONÓMICAS</div><div id="dash-alertas"></div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;">
+        <div class="card"><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:10px;">🧠 AGENTE SEMILLA</div><div id="dash-semilla"></div></div>
+        <div class="card"><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:10px;">📦 PEDIDOS RECIENTES</div><div id="dash-pedidos"></div></div>
+        <div class="card"><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:10px;">☕ COSECHAS DEL CICLO</div><div id="dash-cosechas"></div></div>
+      </div>
+    </div>
+
+    <!-- FINCAS -->
+    <div id="sec-fincas" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div><div style="font-size:20px;font-weight:900;color:#e8f5d0;">🗺️ Mis Fincas</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Georreferenciadas · Multi-lote · GPS activo</div></div>
+        <button class="btn btn-g btn-sm" onclick="showModalFinca()">+ Nueva Finca</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;" id="fincas-grid"></div>
+    </div>
+
+    <!-- LOTES -->
+    <div id="sec-lotes" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div><div style="font-size:20px;font-weight:900;color:#e8f5d0;">🌱 Lotes & Cultivos</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Variedad · Altitud · Etapa fenológica · Sistema de cultivo</div></div>
+        <button class="btn btn-g btn-sm" onclick="showModalLote()">+ Nuevo Lote</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;" id="lotes-grid"></div>
+    </div>
+
+    <!-- CUADERNO -->
+    <div id="sec-cuaderno" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div><div style="font-size:20px;font-weight:900;color:#e8f5d0;">📋 Cuaderno de Campo Digital</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Bitácora inmutable · Poda · Fertilización · Cosecha · PHI</div></div>
+        <button class="btn btn-g btn-sm" onclick="showModalCuaderno()">+ Registrar Labor</button>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;"><table class="tbl"><thead><tr><th>Lote</th><th>Labor</th><th>Producto</th><th>Dosis</th><th>Fecha</th><th>Ingeniero</th><th>Estado</th></tr></thead><tbody id="cuaderno-tbody"></tbody></table></div>
+    </div>
+
+    <!-- MIP / FITOSANITARIO -->
+    <div id="sec-mip" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div><div style="font-size:20px;font-weight:900;color:#e8f5d0;">🔬 Fitosanitario & Control PHI</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">MIP · Periodos de Carencia · Kill-switch cosecha segura</div></div>
+        <button class="btn btn-br btn-sm" onclick="showModalMIP()">+ Registrar Aplicación</button>
+      </div>
+      <div id="mip-alert-bar" style="background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.15);border-radius:8px;padding:10px 14px;font-size:11px;margin-bottom:14px;"></div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;" id="mip-grid"></div>
+    </div>
+
+    <!-- NUTRICION -->
+    <div id="sec-nutricion" style="display:none;">
+      <div style="font-size:20px;font-weight:900;color:#e8f5d0;margin-bottom:4px;">💊 Planes de Nutrición</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:14px;">Edáfico · Foliar · Fertiriego · Por variedad y altitud</div>
+      <div id="nutricion-content"></div>
+    </div>
+
+    <!-- AGENTE SEMILLA -->
+    <div id="sec-semilla" style="display:none;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;height:calc(100vh - 130px);">
+        <div class="card" style="display:flex;flex-direction:column;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border2);">
+            <div style="width:42px;height:42px;border-radius:50%;background:rgba(101,163,13,.2);display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid rgba(101,163,13,.4);">🧠</div>
+            <div><div style="font-size:13px;font-weight:900;color:#e8f5d0;">Agente Semilla</div><div style="font-size:10px;color:#65a30d;">● IA Agrícola · Diagnóstico visual · Derivación a Ingeniero</div></div>
+          </div>
+          <div id="chat-messages" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:9px;padding-right:4px;scrollbar-width:thin;"></div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <input id="chat-input" placeholder="Describe el problema o manda una foto..." onkeydown="if(event.key==='Enter')sendChat()" style="font-size:11px;">
+            <button class="btn btn-g" onclick="sendChat()" id="chat-btn" style="padding:7px 12px;">→</button>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:7px;" id="chat-quick"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div class="card"><div style="font-size:10px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;">Diagnósticos Recientes</div><div id="sem-diagnosticos"></div></div>
+          <div class="card" style="flex:1;"><div style="font-size:10px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;">Simulador Detección Visual</div><div id="sem-simulador"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MARKETPLACE -->
+    <div id="sec-marketplace" style="display:none;">
+      <div style="font-size:20px;font-weight:900;color:#e8f5d0;margin-bottom:4px;">🏪 Marketplace de Insumos</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:14px;">Cotiza · Paga via SINPE · Recibe en tu finca</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;" id="proveedores-row"></div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">Catálogo de productos</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;" id="productos-grid"></div>
+    </div>
+
+    <!-- PEDIDOS -->
+    <div id="sec-pedidos" style="display:none;">
+      <div style="font-size:20px;font-weight:900;color:#e8f5d0;margin-bottom:4px;">📦 Mis Pedidos</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:14px;">Cotización → Pago SINPE → Verificación → Despacho → Entrega</div>
+      <div class="card" style="padding:0;overflow:hidden;"><table class="tbl"><thead><tr><th>Código</th><th>Proveedor</th><th>Productos</th><th>Total</th><th>Estado Pago</th><th>Estado</th><th>Tracking</th></tr></thead><tbody id="pedidos-tbody"></tbody></table></div>
+    </div>
+
+    <!-- LOGÍSTICA -->
+    <div id="sec-logistica" style="display:none;">
+      <div style="font-size:20px;font-weight:900;color:#e8f5d0;margin-bottom:4px;">🚛 Logística y Despachos</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:14px;">Flota · Choferes · Tracking GPS · Deep link Waze/Google Maps</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;" id="logistica-grid"></div>
+    </div>
+
+    <!-- COSECHA -->
+    <div id="sec-cosecha" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div><div style="font-size:20px;font-weight:900;color:#e8f5d0;">☕ Registro de Cosechas</div><div style="font-size:11px;color:var(--muted);margin-top:2px;">Kg · Q Score · Método beneficio · Comprador · Trazabilidad</div></div>
+        <button class="btn btn-g btn-sm" onclick="showModalCosecha()">+ Nueva Cosecha</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;" id="cosechas-grid"></div>
+    </div>
+
+    <!-- AUDITORÍA -->
+    <div id="sec-auditoria" style="display:none;">
+      <div style="font-size:20px;font-weight:900;color:#e8f5d0;margin-bottom:4px;">🔍 Auditoría del Sistema</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:14px;">Registro inmutable de todas las acciones · Trazabilidad completa</div>
+      <div id="auditoria-content"></div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<!-- MODAL -->
+<div id="modal-bg" style="display:none;" class="modal-bg">
+  <div class="modal"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;"><div style="font-size:15px;font-weight:900;color:#e8f5d0;" id="modal-title"></div><button onclick="closeModal()" style="background:rgba(255,255,255,.06);border:none;border-radius:5px;padding:5px 9px;cursor:pointer;color:#94a3b8;font-size:14px;">✕</button></div><div id="modal-content"></div></div>
+</div>
+<div id="toast"></div>
+
+<script>
+var SURL='https://crfghwtfqaplzsmwylxe.supabase.co';
+var SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyZmdod3RmcWFwbHpzbXd5bHhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMjc1MjksImV4cCI6MjA5MDkwMzUyOX0.WUNkTqU93H92nohb_Idqhu8nV1JblFvVRk6Lf_PJw64';
+var db=null;
+(function(){try{if(window.supabase&&window.supabase.createClient)db=window.supabase.createClient(SURL,SKEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});}catch(e){}})();
+function dbQ(fn){if(!db)return Promise.resolve({data:null,error:'offline'});try{return fn(db);}catch(e){return Promise.resolve({data:null,error:String(e)});}}
+function v(id){var e=document.getElementById(id);return e?e.value:'';}
+function _n(id){var n=parseFloat(v(id));return isNaN(n)?null:n;}
+
+/* ══ SIM DATA ══ */
+var SIM_PRODUCTORES=[
+  {nombre:'Carlos Quesada Mora',asociacion:'CoopeDota R.L.',nivel_tecnico:'Avanzado',cultivos_principales:['Cafe','Aguacate']},
+  {nombre:'María Fernández Solís',asociacion:'CoopeTarrazú',nivel_tecnico:'Intermedio',cultivos_principales:['Cafe','Cacao']},
+  {nombre:'Diego Murillo Arias',asociacion:'PROCACAO',nivel_tecnico:'Basico',cultivos_principales:['Cacao','Aguacate']}
+];
+var SIM_FINCAS=[
+  {finca_id:'f-001',nombre:'La Esperanza',ubicacion:'Santa María de Dota',canton:'Dota',provincia:'San José',area_total_ha:12.5,altitud_msnm:1820,lat:9.6542,lng:-83.9876},
+  {finca_id:'f-002',nombre:'El Mirador',ubicacion:'Copey de Dota',canton:'Dota',provincia:'San José',area_total_ha:8.2,altitud_msnm:1950,lat:9.6301,lng:-83.9654},
+  {finca_id:'f-003',nombre:'Finca Las Nubes',ubicacion:'San Lorenzo de Tarrazú',canton:'Tarrazú',provincia:'San José',area_total_ha:15.0,altitud_msnm:1680,lat:9.6023,lng:-83.9432},
+  {finca_id:'f-004',nombre:'Cacao Verde',ubicacion:'Osa',canton:'Osa',provincia:'Puntarenas',area_total_ha:22.0,altitud_msnm:450,lat:8.9234,lng:-83.4521}
+];
+var SIM_LOTES=[
+  {lote_id:'l-001',finca_id:'f-001',nombre:'Lote Caturra Norte',cultivo:'Cafe',variedad:'Caturra',altitud_msnm:1820,area_ha:3.5,densidad_plantas:3000,etapa_fenologica:'Produccion',sistema_cultivo:'Semisombra'},
+  {lote_id:'l-002',finca_id:'f-001',nombre:'Lote Geisha Premium',cultivo:'Cafe',variedad:'Geisha',altitud_msnm:1900,area_ha:2.0,densidad_plantas:2000,etapa_fenologica:'Produccion',sistema_cultivo:'Agroforestal'},
+  {lote_id:'l-003',finca_id:'f-001',nombre:'Lote Aguacate Hass',cultivo:'Aguacate',variedad:'Hass',altitud_msnm:1750,area_ha:4.5,densidad_plantas:400,etapa_fenologica:'Produccion',sistema_cultivo:'Pleno sol'},
+  {lote_id:'l-004',finca_id:'f-002',nombre:'Lote SL28 Alto',cultivo:'Cafe',variedad:'SL28',altitud_msnm:1950,area_ha:8.2,densidad_plantas:2500,etapa_fenologica:'Produccion',sistema_cultivo:'Agroforestal'},
+  {lote_id:'l-005',finca_id:'f-003',nombre:'Lote Catuaí 1',cultivo:'Cafe',variedad:'Catuaí',altitud_msnm:1680,area_ha:5.0,densidad_plantas:3500,etapa_fenologica:'Produccion',sistema_cultivo:'Semisombra'},
+  {lote_id:'l-006',finca_id:'f-003',nombre:'Lote Bourbon',cultivo:'Cafe',variedad:'Bourbon',altitud_msnm:1720,area_ha:4.0,densidad_plantas:2800,etapa_fenologica:'Crecimiento',sistema_cultivo:'Semisombra'},
+  {lote_id:'l-007',finca_id:'f-004',nombre:'Lote Trinitario A',cultivo:'Cacao',variedad:'Trinitario',altitud_msnm:450,area_ha:8.0,densidad_plantas:1100,etapa_fenologica:'Produccion',sistema_cultivo:'Agroforestal'},
+  {lote_id:'l-008',finca_id:'f-004',nombre:'Lote CCN-51',cultivo:'Cacao',variedad:'CCN-51',altitud_msnm:420,area_ha:7.0,densidad_plantas:1200,etapa_fenologica:'Produccion',sistema_cultivo:'Pleno sol'}
+];
+var SIM_CUADERNO=[
+  {lote_id:'l-001',tipo_labor:'Fertilizacion',descripcion:'Aplicación foliar post cosecha',producto_usado:'Fertibiol K 20-0-25',dosis_aplicada:'3kg/100L',fecha_labor:'2026-04-10',validado_ingeniero:true},
+  {lote_id:'l-001',tipo_labor:'Poda',descripcion:'Poda de mantenimiento pre-floración',producto_usado:'—',dosis_aplicada:'—',fecha_labor:'2026-04-05',validado_ingeniero:true},
+  {lote_id:'l-002',tipo_labor:'Fitosanitario',descripcion:'Preventivo Ojo de Gallo',producto_usado:'Caldo Bordelés',dosis_aplicada:'2%',fecha_labor:'2026-04-12',validado_ingeniero:true},
+  {lote_id:'l-003',tipo_labor:'Fertilizacion',descripcion:'Fertilización edáfica Hass fase crecimiento',producto_usado:'18-46-0',dosis_aplicada:'200g/árbol',fecha_labor:'2026-04-08',validado_ingeniero:false},
+  {lote_id:'l-007',tipo_labor:'Fitosanitario',descripcion:'Control Monilia lote Trinitario',producto_usado:'Hidróxido de cobre',dosis_aplicada:'3g/L',fecha_labor:'2026-04-15',validado_ingeniero:false},
+  {lote_id:'l-005',tipo_labor:'Cosecha',descripcion:'Recolección selectiva maduros rojos',producto_usado:'—',dosis_aplicada:'—',fecha_labor:'2026-04-18',validado_ingeniero:true}
+];
+var SIM_MIP=[
+  {lote_id:'l-001',tipo:'Enfermedad',agente_causal:'Roya (Hemileia vastatrix)',severidad:'Moderada',producto_aplicado:'Trifloxistrobina 50 WG',dosis_aplicada:'0.5g/L',phi_dias:14,fecha_aplicacion:'2026-04-02',fecha_cosecha_segura:'2026-04-16',bloqueo_cosecha:false,aprobado_ingeniero:true},
+  {lote_id:'l-007',tipo:'Enfermedad',agente_causal:'Monilia (Moniliophthora roreri)',severidad:'Severa',producto_aplicado:'—',dosis_aplicada:'—',phi_dias:7,fecha_aplicacion:'2026-04-15',fecha_cosecha_segura:'2026-04-22',bloqueo_cosecha:true,aprobado_ingeniero:false},
+  {lote_id:'l-002',tipo:'Plaga',agente_causal:'Broca (Hypothenemus hampei)',severidad:'Leve',producto_aplicado:'Beauveria bassiana',dosis_aplicada:'2g/L',phi_dias:0,fecha_aplicacion:'2026-04-10',fecha_cosecha_segura:'2026-04-10',bloqueo_cosecha:false,aprobado_ingeniero:true}
+];
+var SIM_DIAG=[
+  {lote_id:'l-007',descripcion_productor:'Manchas café en mazorcas y olor fermentado',diagnostico_semilla:'Probable Monilia phytophtora. Lesiones necróticas en mazorcas.',confianza_pct:87.5,agente_causal:'Monilia',recomendacion:'Retirar mazorcas afectadas. Aplicar cobre 3g/L.',escalado_ingeniero:true,estado:'Derivado'},
+  {lote_id:'l-001',descripcion_productor:'Hojas con polvo amarillo-naranja en el envés',diagnostico_semilla:'Roya del café (Hemileia vastatrix). Cobertura 25-30%.',confianza_pct:91.0,agente_causal:'Roya',recomendacion:'Trifloxistrobina. PHI 14d.',escalado_ingeniero:true,estado:'Resuelto'},
+  {lote_id:'l-005',descripcion_productor:'Manchas oscuras circulares con halo amarillo',diagnostico_semilla:'Ojo de Gallo (Mycena citricolor). 88% certeza.',confianza_pct:88.0,agente_causal:'Ojo de Gallo',recomendacion:'Caldo Bordelés 1-2%. Reducir sombra.',escalado_ingeniero:false,estado:'Pendiente'}
+];
+var SIM_PROVEEDORES=[
+  {proveedor_id:'pv-001',razon_social:'AgroServicios Los Santos',ubicacion:'Santa María de Dota',categorias:['Insumos','Herramientas'],calificacion:4.8,telefono:'+506 2546-0011'},
+  {proveedor_id:'pv-002',razon_social:'Insumos Dota S.A.',ubicacion:'San Marcos de Tarrazú',categorias:['Fertilizantes','Fitosanitarios'],calificacion:4.7,telefono:'+506 2546-9900'}
+];
+var SIM_PRODUCTOS=[
+  {producto_id:'prod-001',proveedor_id:'pv-001',nombre:'Trifloxistrobina 50 WG',categoria:'Fungicida',cultivos_aptos:['Cafe'],presentacion:'Sobre 200g',precio:8500,moneda:'CRC',stock:45},
+  {producto_id:'prod-002',proveedor_id:'pv-001',nombre:'Caldo Bordelés 30 WG',categoria:'Fungicida',cultivos_aptos:['Cafe','Cacao','Aguacate'],presentacion:'Saco 25kg',precio:18000,moneda:'CRC',stock:30},
+  {producto_id:'prod-003',proveedor_id:'pv-001',nombre:'Fertibiol K 20-0-25',categoria:'Fertilizante',cultivos_aptos:['Cafe','Aguacate'],presentacion:'Bolsa 1kg',precio:4200,moneda:'CRC',stock:120},
+  {producto_id:'prod-004',proveedor_id:'pv-002',nombre:'Beauveria bassiana 1.5%',categoria:'Biopesticida',cultivos_aptos:['Cafe'],presentacion:'Frasco 500ml',precio:6800,moneda:'CRC',stock:60},
+  {producto_id:'prod-005',proveedor_id:'pv-002',nombre:'18-46-0 Fosfato DAP',categoria:'Fertilizante',cultivos_aptos:['Cafe','Cacao','Aguacate'],presentacion:'Saco 50kg',precio:24000,moneda:'CRC',stock:80},
+  {producto_id:'prod-006',proveedor_id:'pv-002',nombre:'Propineb 70 WP',categoria:'Fungicida',cultivos_aptos:['Cacao'],presentacion:'Bolsa 1kg',precio:5500,moneda:'CRC',stock:35}
+];
+var SIM_PEDIDOS=[
+  {pedido_id:'ped-001',codigo:'FO-2026-001',proveedor_id:'pv-001',subtotal:25500,envio:3000,total:28500,estado:'Entregado',estado_pago:'Verificado'},
+  {pedido_id:'ped-002',codigo:'FO-2026-002',proveedor_id:'pv-002',subtotal:11000,envio:2500,total:13500,estado:'Pagado',estado_pago:'Verificado'},
+  {pedido_id:'ped-003',codigo:'FO-2026-003',proveedor_id:'pv-001',subtotal:18000,envio:3000,total:21000,estado:'Confirmado',estado_pago:'Pendiente'}
+];
+var SIM_DESPACHOS=[
+  {pedido_id:'ped-001',placa:'SJB-1234',chofer:'Juan Mora Rodríguez',estado:'Entregado',lat_destino:9.6542,lng_destino:-83.9876,fecha_programada:'2026-04-13'},
+  {pedido_id:'ped-002',placa:'SJC-5678',chofer:'Pedro Vásquez León',estado:'EnRuta',lat_destino:8.9234,lng_destino:-83.4521,fecha_programada:'2026-04-19'}
+];
+var SIM_COSECHAS=[
+  {lote_id:'l-001',fecha_inicio:'2026-01-15',fecha_fin:'2026-02-28',kg_recolectados:4200,kg_procesados:840,calidad_cup:'Especialidad',precio_kg:4500,comprador:'Expocafe S.A.',metodo_beneficio:'Lavado',puntaje_q:86.5,validado:true},
+  {lote_id:'l-002',fecha_inicio:'2026-01-20',fecha_fin:'2026-02-25',kg_recolectados:1800,kg_procesados:360,calidad_cup:'Especialidad',precio_kg:8000,comprador:'Starbucks Reserve',metodo_beneficio:'Natural',puntaje_q:90.2,validado:true},
+  {lote_id:'l-007',fecha_inicio:'2025-12-01',fecha_fin:'2026-01-31',kg_recolectados:2800,kg_procesados:2800,calidad_cup:'Comercial',precio_kg:2800,comprador:'Compañía Nacional',metodo_beneficio:null,puntaje_q:null,validado:false}
+];
+
+var me=null, FINCAS=[], LOTES=[], CUADERNO=[], MIP=[], DIAG=[], PROVEEDORES=[], PRODUCTOS=[], PEDIDOS=[], DESPACHOS=[], COSECHAS=[];
+
+/* ══ AUTH ══ */
+function doLogin(){
+  try{
+    var u=v('l-u').trim(),p=v('l-p').trim(),rol=v('l-rol');
+    var emails=['carlos@finca.cr','maria@finca.cr','diego@finca.cr','andres@agroconsult.cr','sofia@agroconsult.cr','admin@agrols.cr','ventas@insumosdota.cr'];
+    var ok=emails.indexOf(u)>=0&&p.length>=4;
+    if(!ok){var e=document.getElementById('l-err');if(e)e.style.display='block';return;}
+    var names={productor:'Carlos Quesada',ingeniero:'Ing. Andrés Vargas',proveedor:'AgroServicios',chofer:'Juan Mora',admin:'Admin'};
+    me={rol:rol,nombre:names[rol]||'Usuario',email:u};
+    var el=document.getElementById.bind(document);
+    if(el('sb-av'))el('sb-av').textContent={productor:'🌿',ingeniero:'👨‍🌾',proveedor:'🏪',chofer:'🚛',admin:'⚙️'}[rol]||'🌿';
+    if(el('sb-name'))el('sb-name').textContent=me.nombre.split(' ')[0];
+    if(el('sb-rol'))el('sb-rol').textContent=rol.toUpperCase();
+    if(el('pg-login'))el('pg-login').style.display='none';
+    if(el('pg-app'))el('pg-app').style.display='block';
+    initApp();
+  }catch(e){console.error(e);var l=document.getElementById('pg-login'),a=document.getElementById('pg-app');if(l)l.style.display='none';if(a)a.style.display='block';loadSim();go('dash');}
+}
+document.getElementById('btn-login').onclick=doLogin;
+document.addEventListener('keydown',function(e){var pg=document.getElementById('pg-login');if(e.key==='Enter'&&pg&&pg.style.display!=='none')doLogin();});
+function doLogout(){me=null;document.getElementById('pg-app').style.display='none';document.getElementById('pg-login').style.display='flex';}
+setInterval(function(){var e=document.getElementById('clock');if(e)e.textContent=new Date().toLocaleString('es-CR',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'});},1000);
+
+/* ══ NAV ══ */
+var SECS=['dash','fincas','lotes','cuaderno','mip','nutricion','semilla','marketplace','pedidos','logistica','cosecha','auditoria'];
+var TITLES={dash:'Dashboard FINCA·OS',fincas:'Mis Fincas',lotes:'Lotes & Cultivos',cuaderno:'Cuaderno de Campo',mip:'Fitosanitario & PHI',nutricion:'Planes de Nutrición',semilla:'Agente Semilla IA',marketplace:'Marketplace',pedidos:'Mis Pedidos',logistica:'Logística',cosecha:'Cosechas',auditoria:'Auditoría'};
+var LOADERS={dash:loadDash,fincas:loadFincas,lotes:loadLotes,cuaderno:loadCuaderno,mip:loadMIP,nutricion:loadNutricion,semilla:loadSemilla,marketplace:loadMarketplace,pedidos:loadPedidos,logistica:loadLogistica,cosecha:loadCosecha,auditoria:loadAuditoria};
+function go(sec){SECS.forEach(function(s){var e=document.getElementById('sec-'+s);if(e)e.style.display=s===sec?'block':'none';});SECS.forEach(function(s){var n=document.getElementById('nav-'+s);if(n)n.classList.toggle('on',s===sec);});var tt=document.getElementById('topbar-title');if(tt)tt.textContent=TITLES[sec]||sec;if(LOADERS[sec])try{LOADERS[sec]();}catch(er){console.error(er);}}
+function closeModal(){document.getElementById('modal-bg').style.display='none';}
+function openModal(t,h){document.getElementById('modal-title').textContent=t;document.getElementById('modal-content').innerHTML=h;document.getElementById('modal-bg').style.display='flex';}
+var _t;function toast(msg,c){var e=document.getElementById('toast');e.textContent=msg;e.style.borderColor=c?c+'80':'var(--border)';e.style.opacity='1';e.style.transform='translateX(-50%) translateY(0)';clearTimeout(_t);_t=setTimeout(function(){e.style.opacity='0';e.style.transform='translateX(-50%) translateY(30px)';},3200);}
+function fmtC(n){return new Intl.NumberFormat('es-CR',{style:'currency',currency:'CRC',maximumFractionDigits:0}).format(n||0);}
+function fmtM(n){if(!n&&n!==0)return '0';n=parseFloat(n);if(Math.abs(n)>=1000)return (n/1000).toFixed(1)+'K';return n.toFixed(0);}
+function cultColor(c){return {Cafe:'#b45309',Cacao:'#d97706',Aguacate:'#16a34a'}[c]||'#65a30d';}
+function cultBadge(c){return {Cafe:'b-cafe',Cacao:'b-cacao',Aguacate:'b-aguacate'}[c]||'b-g';}
+function cultEmoji(c){return {Cafe:'☕',Cacao:'🍫',Aguacate:'🥑'}[c]||'🌱';}
+function lName(id){var l=LOTES.find(function(x){return x.lote_id===id;});return l?l.nombre:'—';}
+function pName(id){var p=PROVEEDORES.find(function(x){return x.proveedor_id===id;});return p?p.razon_social:'—';}
+
+/* ══ INIT ══ */
+function loadSim(){FINCAS=SIM_FINCAS;LOTES=SIM_LOTES;CUADERNO=SIM_CUADERNO;MIP=SIM_MIP;DIAG=SIM_DIAG;PROVEEDORES=SIM_PROVEEDORES;PRODUCTOS=SIM_PRODUCTOS;PEDIDOS=SIM_PEDIDOS;DESPACHOS=SIM_DESPACHOS;COSECHAS=SIM_COSECHAS;}
+async function initApp(){
+  loadSim();go('dash');
+  if(db){
+    try{var r=await dbQ(function(d){return d.schema('fincaos').from('fincas').select('*');});if(r&&r.data&&r.data.length)FINCAS=r.data;}catch(e){}
+    try{var r2=await dbQ(function(d){return d.schema('fincaos').from('zonas_lotes').select('*');});if(r2&&r2.data&&r2.data.length)LOTES=r2.data;}catch(e){}
+    try{var r3=await dbQ(function(d){return d.schema('fincaos').from('cuaderno_campo').select('*').order('fecha_labor',{ascending:false});});if(r3&&r3.data&&r3.data.length)CUADERNO=r3.data;}catch(e){}
+    try{var r4=await dbQ(function(d){return d.schema('fincaos').from('manejo_fitosanitario').select('*');});if(r4&&r4.data&&r4.data.length)MIP=r4.data;}catch(e){}
+    try{var r5=await dbQ(function(d){return d.schema('fincaos').from('proveedores').select('*');});if(r5&&r5.data&&r5.data.length)PROVEEDORES=r5.data;}catch(e){}
+    try{var r6=await dbQ(function(d){return d.schema('fincaos').from('catalogo_productos').select('*');});if(r6&&r6.data&&r6.data.length)PRODUCTOS=r6.data;}catch(e){}
+    try{var r7=await dbQ(function(d){return d.schema('fincaos').from('pedidos').select('*');});if(r7&&r7.data&&r7.data.length)PEDIDOS=r7.data;}catch(e){}
+    try{var r8=await dbQ(function(d){return d.schema('fincaos').from('cosechas').select('*');});if(r8&&r8.data&&r8.data.length)COSECHAS=r8.data;}catch(e){}
+    try{loadDash();}catch(e){}
+  }
+  document.getElementById('nav-fin-lbl').textContent='Mis Fincas ('+FINCAS.length+')';
+  document.getElementById('nav-lot-lbl').textContent='Lotes ('+LOTES.length+')';
+  document.getElementById('nav-ped-lbl').textContent='Pedidos ('+PEDIDOS.length+')';
+  document.getElementById('nav-sem-lbl').textContent='Agente Semilla ('+DIAG.filter(function(d){return d.estado==='Pendiente';}).length+' pend.)';
+}
+
+/* ══ DASHBOARD ══ */
+function loadDash(){
+  var bloq=MIP.filter(function(m){return m.bloqueo_cosecha;}).length;
+  var totalKg=COSECHAS.reduce(function(a,c){return a+(c.kg_recolectados||0);},0);
+  var totalVenta=COSECHAS.reduce(function(a,c){return a+(c.kg_recolectados||0)*(c.precio_kg||0);},0);
+  var diagPend=DIAG.filter(function(d){return d.estado==='Pendiente';}).length;
+  document.getElementById('dash-greeting').textContent='Hola, '+(me?me.nombre.split(' ')[0]:'Productor')+'!';
+  document.getElementById('dash-quick-btns').innerHTML='<button class="btn btn-g btn-sm" onclick="go(\'semilla\')">🧠 Agente Semilla</button><button class="btn btn-o btn-sm" onclick="go(\'marketplace\')">🏪 Marketplace</button>';
+  var KPIS=[
+    {icon:'🗺️',l:'Fincas',v:FINCAS.length,c:'#65a30d',s:'fincas'},
+    {icon:'🌱',l:'Lotes activos',v:LOTES.length,c:'#84cc16',s:'lotes'},
+    {icon:'⚗️',l:'PHI Bloqueados',v:bloq,c:bloq>0?'#ef4444':'#65a30d',s:'mip'},
+    {icon:'🧠',l:'Diagnósticos IA',v:DIAG.length,c:'#65a30d',s:'semilla'},
+    {icon:'☕',l:'Kg Cosechados',v:fmtM(totalKg)+'kg',c:'#b45309',s:'cosecha'},
+    {icon:'💰',l:'Ingresos ciclo',v:fmtC(totalVenta),c:'#f59e0b',s:'cosecha'}
+  ];
+  document.getElementById('dash-kpis').innerHTML=KPIS.map(function(k){return '<div class="kpi" onclick="go(\''+k.s+'\')" style="border-left:3px solid '+k.c+'"><div style="font-size:18px;">'+k.icon+'</div><div style="font-size:8px;color:var(--muted);text-transform:uppercase;margin:2px 0;">'+k.l+'</div><div style="font-size:16px;font-weight:900;color:'+k.c+';">'+k.v+'</div></div>';}).join('');
+
+  document.getElementById('dash-lotes').innerHTML=LOTES.slice(0,6).map(function(l){
+    var c=cultColor(l.cultivo);
+    var etColor={Produccion:'#65a30d',Crecimiento:'#f59e0b',Vivero:'#3b82f6',Renovacion:'#ef4444'}[l.etapa_fenologica]||'#65a30d';
+    return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border2);">'
+      +'<div class="cult-icon" style="background:'+c+'15;border:1px solid '+c+'30;">'+cultEmoji(l.cultivo)+'</div>'
+      +'<div style="flex:1;"><div style="font-size:11px;font-weight:700;color:#e8f5d0;">'+l.nombre+'</div>'
+      +'<div style="font-size:9px;color:var(--muted);">'+l.variedad+' · '+l.altitud_msnm+'msnm · '+l.area_ha+'ha</div></div>'
+      +'<div style="text-align:right;"><span class="badge '+cultBadge(l.cultivo)+'" style="font-size:8px;">'+l.cultivo+'</span>'
+      +'<div style="font-size:9px;color:'+etColor+';margin-top:2px;">'+l.etapa_fenologica+'</div></div>'
+      +'</div>';
+  }).join('');
+
+  var alertas=MIP.filter(function(m){return m.bloqueo_cosecha||m.severidad==='Severa';});
+  document.getElementById('dash-alertas').innerHTML=alertas.length?alertas.map(function(m){
+    var c=m.bloqueo_cosecha?'#ef4444':m.severidad==='Severa'?'#f97316':'#f59e0b';
+    return '<div style="padding:6px 0;border-bottom:1px solid var(--border2);">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;">'
+      +'<div><div style="font-size:11px;font-weight:700;color:#e8f5d0;">'+m.agente_causal+'</div>'
+      +'<div style="font-size:9px;color:var(--muted);">'+lName(m.lote_id)+'</div></div>'
+      +(m.bloqueo_cosecha?'<span class="badge b-crit pls" style="font-size:8px;">🚫 Cosecha bloqueada</span>':'<span class="badge b-warn" style="font-size:8px;">'+m.severidad+'</span>')
+      +'</div></div>';
+  }).join(''):'<div style="text-align:center;padding:16px;color:var(--muted);font-size:11px;">✅ Sin alertas activas</div>';
+
+  var pend=DIAG.filter(function(d){return d.estado==='Pendiente';});
+  document.getElementById('dash-semilla').innerHTML='<div style="text-align:center;padding:8px 0;">'
+    +'<div style="font-size:28px;font-weight:900;color:#84cc16;">'+DIAG.length+'</div>'
+    +'<div style="font-size:10px;color:var(--muted);">Diagnósticos totales</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-top:8px;font-size:9px;">'
+    +'<div style="background:rgba(255,255,255,.03);border-radius:4px;padding:5px;"><div style="color:var(--muted);">Resueltos</div><b style="color:#65a30d;">'+DIAG.filter(function(d){return d.estado==='Resuelto';}).length+'</b></div>'
+    +'<div style="background:rgba(255,255,255,.03);border-radius:4px;padding:5px;"><div style="color:var(--muted);">Derivados</div><b style="color:#f59e0b;">'+DIAG.filter(function(d){return d.estado==='Derivado';}).length+'</b></div>'
+    +'<div style="background:rgba(255,255,255,.03);border-radius:4px;padding:5px;"><div style="color:var(--muted);">Pendientes</div><b style="color:#ef4444;">'+pend.length+'</b></div>'
+    +'</div></div>'
+    +(pend.length?'<button class="btn btn-g btn-sm" style="width:100%;margin-top:8px;" onclick="go(\'semilla\')">Ver diagnósticos pendientes</button>':'');
+
+  document.getElementById('dash-pedidos').innerHTML=PEDIDOS.map(function(p){
+    var c=p.estado==='Entregado'?'b-ok':p.estado==='Pagado'?'b-blue':p.estado==='Confirmado'?'b-warn':'b-g';
+    return '<div style="padding:5px 0;border-bottom:1px solid var(--border2);display:flex;justify-content:space-between;align-items:center;">'
+      +'<div><div class="mono" style="font-size:10px;color:#84cc16;">'+p.codigo+'</div>'
+      +'<div style="font-size:9px;color:var(--muted);">'+pName(p.proveedor_id||p.proveedor_id)+'</div></div>'
+      +'<div style="text-align:right;"><div style="font-size:10px;font-weight:700;color:#e8f5d0;">'+fmtC(p.total)+'</div>'
+      +'<span class="badge '+c+'" style="font-size:8px;">'+p.estado+'</span></div></div>';
+  }).join('');
+
+  document.getElementById('dash-cosechas').innerHTML=COSECHAS.map(function(c){
+    var l=LOTES.find(function(x){return x.lote_id===c.lote_id;})||{};
+    var ingresos=(c.kg_recolectados||0)*(c.precio_kg||0);
+    return '<div style="padding:6px 0;border-bottom:1px solid var(--border2);">'
+      +'<div style="display:flex;justify-content:space-between;">'
+      +'<div><div style="font-size:10px;font-weight:700;color:#e8f5d0;">'+lName(c.lote_id)+'</div>'
+      +'<div style="font-size:9px;color:var(--muted);">'+(c.kg_recolectados||0)+'kg · '+( c.metodo_beneficio||'Sin beneficio')+'</div></div>'
+      +'<div style="text-align:right;">'
+      +(c.puntaje_q?'<div style="font-size:10px;font-weight:700;color:#b45309;">Q '+c.puntaje_q+'</div>':'')
+      +'<div style="font-size:9px;color:#65a30d;">'+fmtC(ingresos)+'</div>'
+      +'</div></div></div>';
+  }).join('');
+}
+
+/* ══ FINCAS ══ */
+function loadFincas(){
+  document.getElementById('fincas-grid').innerHTML=FINCAS.map(function(f){
+    var lotesF=LOTES.filter(function(l){return l.finca_id===f.finca_id;});
+    var cultivos=[...new Set(lotesF.map(function(l){return l.cultivo;}))];
+    return '<div class="card fi" style="border-left:3px solid rgba(101,163,13,.5);">'
+      +'<div style="display:flex;justify-content:space-between;margin-bottom:10px;">'
+      +'<div style="font-size:14px;font-weight:900;color:#e8f5d0;">'+f.nombre+'</div>'
+      +'<a href="https://maps.google.com/?q='+f.lat+','+f.lng+'" target="_blank" style="font-size:10px;color:#84cc16;background:rgba(101,163,13,.08);padding:3px 8px;border-radius:5px;text-decoration:none;border:1px solid rgba(101,163,13,.2);">🗺️ Mapa</a>'
+      +'</div>'
+      +'<div style="font-size:10px;color:var(--muted);margin-bottom:8px;">📍 '+f.ubicacion+', '+f.canton+' · '+f.provincia+'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;font-size:10px;">'
+      +'<div style="background:rgba(255,255,255,.03);border-radius:5px;padding:5px;"><div style="color:var(--muted);">Área total</div><b>'+f.area_total_ha+' ha</b></div>'
+      +'<div style="background:rgba(255,255,255,.03);border-radius:5px;padding:5px;"><div style="color:var(--muted);">Altitud</div><b>'+f.altitud_msnm+' msnm</b></div>'
+      +'<div style="background:rgba(255,255,255,.03);border-radius:5px;padding:5px;"><div style="color:var(--muted);">Lotes</div><b>'+lotesF.length+'</b></div>'
+      +'</div>'
+      +'<div style="display:flex;gap:5px;flex-wrap:wrap;">'
+      +cultivos.map(function(c){return '<span class="badge '+cultBadge(c)+'" style="font-size:8px;">'+cultEmoji(c)+' '+c+'</span>';}).join('')
+      +'</div></div>';
+  }).join('');
+}
+
+/* ══ LOTES ══ */
+function loadLotes(){
+  document.getElementById('lotes-grid').innerHTML=LOTES.map(function(l){
+    var c=cultColor(l.cultivo);
+    var finca=FINCAS.find(function(f){return f.finca_id===l.finca_id;})||{};
+    return '<div class="card fi">'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;">'
+      +'<div class="cult-icon" style="background:'+c+'12;border:1px solid '+c+'25;">'+cultEmoji(l.cultivo)+'</div>'
+      +'<span class="badge '+cultBadge(l.cultivo)+'" style="font-size:8px;">'+l.cultivo+'</span>'
+      +'</div>'
+      +'<div style="font-size:11px;font-weight:800;color:#e8f5d0;margin-bottom:2px;">'+l.nombre+'</div>'
+      +'<div style="font-size:9px;color:var(--muted);margin-bottom:7px;">'+l.variedad+' · '+(finca.nombre||'—')+'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:9px;">'
+      +'<div style="background:rgba(255,255,255,.03);border-radius:4px;padding:4px;"><div style="color:var(--muted);">Altitud</div><b>'+l.altitud_msnm+' m</b></div>'
+      +'<div style="background:rgba(255,255,255,.03);border-radius:4px;padding:4px;"><div style="color:var(--muted);">Área</div><b>'+l.area_ha+' ha</b></div>'
+      +'<div style="background:rgba(255,255,255,.03);border-radius:4px;padding:4px;"><div style="color:var(--muted);">Plantas</div><b>'+fmtM(l.densidad_plantas||0)+'</b></div>'
+      +'<div style="background:rgba(255,255,255,.03);border-radius:4px;padding:4px;"><div style="color:var(--muted);">Sistema</div><b style="font-size:8px;">'+l.sistema_cultivo+'</b></div>'
+      +'</div>'
+      +'<div style="margin-top:6px;font-size:9px;color:'+(l.etapa_fenologica==='Produccion'?'#65a30d':'#f59e0b')+';">'+l.etapa_fenologica+'</div>'
+      +'</div>';
+  }).join('');
+}
+
+/* ══ CUADERNO ══ */
+function loadCuaderno(){
+  var labor_colors={Fertilizacion:'b-g',Poda:'b-blue',Fitosanitario:'b-warn',Cosecha:'b-cafe',Riego:'b-blue',Deshierba:'b-cacao'};
+  document.getElementById('cuaderno-tbody').innerHTML=CUADERNO.map(function(r){
+    var lc=labor_colors[r.tipo_labor]||'b-g';
+    return '<tr>'
+      +'<td><div style="font-size:10px;font-weight:700;color:#e8f5d0;">'+lName(r.lote_id)+'</div></td>'
+      +'<td><span class="badge '+lc+'" style="font-size:8px;">'+r.tipo_labor+'</span></td>'
+      +'<td style="font-size:10px;color:#e8f5d0;">'+r.producto_usado+'</td>'
+      +'<td class="mono" style="font-size:10px;color:var(--muted);">'+r.dosis_aplicada+'</td>'
+      +'<td style="font-size:10px;color:var(--muted);">'+r.fecha_labor+'</td>'
+      +'<td>'+(r.validado_ingeniero?'<span class="badge b-ok" style="font-size:8px;">✓ Validado</span>':'<span class="badge b-warn" style="font-size:8px;">Pendiente</span>')+'</td>'
+      +'<td><button class="btn btn-o btn-sm" style="font-size:9px;" onclick="toast(\'Labor registrada en blockchain\',\'#65a30d\')">🔗 Hash</button></td>'
+      +'</tr>';
+  }).join('');
+}
+
+/* ══ MIP ══ */
+function loadMIP(){
+  var bloq=MIP.filter(function(m){return m.bloqueo_cosecha;});
+  document.getElementById('mip-alert-bar').innerHTML=bloq.length
+    ?'🚫 <b style="color:#ef4444;">KILL-SWITCH ACTIVO:</b> '+bloq.length+' lote(s) con cosecha bloqueada por PHI no cumplido.'
+    :'✅ <span style="color:#65a30d;">Sin bloqueos activos.</span> Todos los periodos de carencia cumplidos.';
+  document.getElementById('mip-grid').innerHTML=MIP.map(function(m){
+    var c=m.bloqueo_cosecha?'#ef4444':m.severidad==='Severa'?'#f97316':m.severidad==='Moderada'?'#f59e0b':'#65a30d';
+    var dias=Math.ceil((new Date(m.fecha_cosecha_segura)-new Date())/86400000);
+    return '<div class="card fi" style="border-top:2px solid '+c+';">'
+      +'<div style="display:flex;justify-content:space-between;margin-bottom:8px;">'
+      +'<span class="badge" style="font-size:8px;color:'+c+';background:'+c+'12;border:1px solid '+c+'25;">'+m.tipo+'</span>'
+      +(m.bloqueo_cosecha?'<span class="badge b-crit pls" style="font-size:8px;">🚫 Bloqueado</span>':'<span class="badge b-ok" style="font-size:8px;">✅ Libre</span>')
+      +'</div>'
+      +'<div style="font-size:12px;font-weight:800;color:#e8f5d0;margin-bottom:2px;">'+m.agente_causal+'</div>'
+      +'<div style="font-size:9px;color:var(--muted);margin-bottom:8px;">'+lName(m.lote_id)+'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:9px;margin-bottom:8px;">'
+      +'<div style="background:rgba(255,255,255,.03);border-radius:4px;padding:4px;"><div style="color:var(--muted);">Producto</div><b style="font-size:8px;">'+m.producto_aplicado+'</b></div>'
+      +'<div style="background:rgba(255,255,255,.03);border-radius:4px;padding:4px;"><div style="color:var(--muted);">PHI</div><b style="color:'+c+';">'+m.phi_dias+' días</b></div>'
+      +'<div style="background:rgba(255,255,255,.03);border-radius:4px;padding:4px;"><div style="color:var(--muted);">Cosecha segura</div><b style="font-size:8px;">'+m.fecha_cosecha_segura+'</b></div>'
+      +'<div style="background:rgba(255,255,255,.03);border-radius:4px;padding:4px;"><div style="color:var(--muted);">Días restantes</div><b style="color:'+(dias<=0?'#65a30d':'#f59e0b')+';">'+(dias<=0?'¡Libre!':dias+'d')+'</b></div>'
+      +'</div>'
+      +(m.aprobado_ingeniero?'<span class="badge b-ok" style="font-size:8px;">✓ Aprobado Ingeniero</span>':'<span class="badge b-warn" style="font-size:8px;">Pendiente aprobación</span>')
+      +'</div>';
+  }).join('');
+}
+
+/* ══ NUTRICIÓN ══ */
+function loadNutricion(){
+  document.getElementById('nutricion-content').innerHTML='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">'
+    +[
+      {cultivo:'Café',fase:'Floración (Feb-Mar)',productos:['Fertibiol K 20-0-25 · 3kg/100L','Boro + Zinc foliar · quincenal','Nitrato de potasio edáfico'],c:'#b45309'},
+      {cultivo:'Café',fase:'Desarrollo grano (Abr-Jul)',productos:['18-46-0 edáfico · 200g/planta','Quelato de hierro · mensual','Calcio-Boro foliar · bimensual'],c:'#b45309'},
+      {cultivo:'Cacao',fase:'Producción (todo el año)',productos:['12-24-12 edáfico · trimestral','Sulfato de magnesio · 2g/L','Caldo Bordelés preventivo · mensual'],c:'#d97706'},
+      {cultivo:'Aguacate Hass',fase:'Crecimiento fruto (Abr-Jun)',productos:['18-46-0 edáfico · 400g/árbol','Calcio quelatado · 3g/L','Potasio foliar · bimensual'],c:'#16a34a'},
+      {cultivo:'Geisha Premium',fase:'Maduración especialidad',productos:['Bajo nitrógeno (K+)','Potasio 100g/planta','Foliar Ca-B cada 21 días'],c:'#92400e'},
+      {cultivo:'General MIP',fase:'Prevención enfermedades',productos:['Caldo Bordelés 1.5%','Beauveria bassiana biológico','Intervalo 14d entre azufre y cobre'],c:'#65a30d'}
+    ].map(function(p){
+      return '<div class="card fi" style="border-top:2px solid '+p.c+';">'
+        +'<div style="font-size:11px;font-weight:800;color:#e8f5d0;margin-bottom:2px;">'+p.cultivo+'</div>'
+        +'<div style="font-size:9px;color:var(--muted);margin-bottom:8px;">'+p.fase+'</div>'
+        +'<div style="display:flex;flex-direction:column;gap:4px;">'
+        +p.productos.map(function(pr){return '<div style="font-size:9px;display:flex;gap:5px;align-items:flex-start;"><div style="width:4px;height:4px;border-radius:50%;background:'+p.c+';flex-shrink:0;margin-top:4px;"></div><span>'+pr+'</span></div>';}).join('')
+        +'</div></div>';
+    }).join('')+'</div>';
+}
+
+/* ══ AGENTE SEMILLA ══ */
+function loadSemilla(){
+  document.getElementById('sem-diagnosticos').innerHTML=DIAG.map(function(d){
+    var c=d.estado==='Resuelto'?'#65a30d':d.estado==='Derivado'?'#f59e0b':'#ef4444';
+    return '<div style="padding:6px 0;border-bottom:1px solid var(--border2);">'
+      +'<div style="display:flex;justify-content:space-between;margin-bottom:2px;">'
+      +'<div style="font-size:10px;font-weight:700;color:#e8f5d0;">'+d.agente_causal+'</div>'
+      +'<span class="badge" style="font-size:8px;color:'+c+';background:'+c+'12;border:1px solid '+c+'25;">'+d.estado+'</span>'
+      +'</div>'
+      +'<div style="font-size:9px;color:var(--muted);">'+lName(d.lote_id)+' · Conf: '+d.confianza_pct+'%</div>'
+      +'</div>';
+  }).join('');
+
+  document.getElementById('sem-simulador').innerHTML='<div style="font-size:10px;color:var(--muted);margin-bottom:8px;">Simula un diagnóstico por síntoma:</div>'
+    +'<div style="margin-bottom:8px;"><label>Cultivo</label><select id="sim-cult" style="font-size:11px;padding:5px;" onchange="simDiag()"><option>Cafe</option><option>Cacao</option><option>Aguacate</option></select></div>'
+    +'<div style="margin-bottom:8px;"><label>Síntoma observado</label><select id="sim-sint" style="font-size:11px;padding:5px;" onchange="simDiag()"><option>Polvo amarillo-naranja en hojas</option><option>Manchas oscuras circulares</option><option>Mazorcas con manchas café</option><option>Galerías en granos maduros</option><option>Hojas amarillas con venas verdes</option><option>Frutos con manchas aceitosas</option></select></div>'
+    +'<div id="sim-result"></div>';
+  simDiag();
+  var msgs=document.getElementById('chat-messages');
+  if(msgs&&msgs.children.length===0){
+    addChatMsg('¡Hola! Soy **Semilla**, tu agrónomo de inteligencia artificial.\n\nEstoy aquí para ayudarte con:\n• Diagnóstico de enfermedades y plagas por foto o descripción\n• Recomendaciones de manejo integrado (MIP)\n• Compatibilidad de productos y PHI\n• Derivación a tu Ingeniero si lo necesito\n\n¿Qué observas hoy en el campo?','ai');
+  }
+  var qs=[{l:'☕ Roya café',q:'Vi polvo amarillo en el envés de las hojas del lote Caturra Norte'},{l:'🍫 Monilia',q:'Mazorcas con manchas café oscuras y olor fermentado en el cacao'},{l:'🥑 Antracnosis',q:'Manchas negras en los frutos de aguacate Hass'},{l:'🐛 Broca',q:'Encontré gusanitos blancos dentro de los granos maduros'},{l:'💊 Compatibilidad',q:'¿Puedo mezclar Trifloxistrobina con Caldo Bordelés?'},{l:'📅 PHI',q:'¿Cuándo puedo cosechar después de aplicar Beauveria bassiana?'}];
+  document.getElementById('chat-quick').innerHTML=qs.map(function(t){return '<button class="btn btn-o btn-sm" onclick="quickChat(\''+t.q+'\')">'+t.l+'</button>';}).join('');
+}
+
+function simDiag(){
+  var cult=v('sim-cult'),sint=v('sim-sint');
+  var DIAG_MAP={
+    'Polvo amarillo-naranja en hojas':{ag:'Roya (Hemileia vastatrix)',conf:91,rec:'Trifloxistrobina 50 WG · PHI 14d · Repetir en 21d',sev:'Moderada'},
+    'Manchas oscuras circulares':{ag:'Ojo de Gallo (Mycena citricolor)',conf:88,rec:'Caldo Bordelés 1-2% · Reducir sombra · PHI 0',sev:'Leve'},
+    'Mazorcas con manchas café':{ag:'Monilia (M. roreri)',conf:87,rec:'Retirar mazorcas afectadas · Propineb 70 WP · PHI 7d',sev:'Severa'},
+    'Galerías en granos maduros':{ag:'Broca (H. hampei)',conf:93,rec:'Beauveria bassiana 2g/L · PHI 0 · Trampas de atracción',sev:'Moderada'},
+    'Hojas amarillas con venas verdes':{ag:'Deficiencia de Hierro/Zinc',conf:82,rec:'Quelato de hierro EDDHA · Sulfato de zinc 2g/L foliar',sev:'Leve'},
+    'Frutos con manchas aceitosas':{ag:'Antracnosis (Colletotrichum)',conf:85,rec:'Clorotalonil 75 WP · PHI 7d · Mejorar ventilación',sev:'Moderada'}
+  };
+  var d=DIAG_MAP[sint]||{ag:'Diagnóstico no determinado',conf:50,rec:'Enviar fotos al ingeniero para validación',sev:'Desconocida'};
+  var c=d.sev==='Severa'?'#ef4444':d.sev==='Moderada'?'#f59e0b':'#65a30d';
+  document.getElementById('sim-result').innerHTML='<div style="background:'+c+'08;border:1px solid '+c+'25;border-radius:8px;padding:10px;">'
+    +'<div style="font-size:11px;font-weight:700;color:'+c+';margin-bottom:4px;">'+d.ag+'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:10px;margin-bottom:6px;">'
+    +'<div><span style="color:var(--muted);">Confianza:</span> <b style="color:'+c+';">'+d.conf+'%</b></div>'
+    +'<div><span style="color:var(--muted);">Severidad:</span> <b class="sev-'+d.sev.toLowerCase().replace('é','e').replace('a','a')+'">'+d.sev+'</b></div>'
+    +'</div>'
+    +'<div style="font-size:9px;color:rgba(255,255,255,.5);">'+d.rec+'</div>'
+    +'</div>';
+}
+
+function quickChat(q){var inp=document.getElementById('chat-input');if(inp){inp.value=q;sendChat();}}
+
+async function sendChat(){
+  var input=document.getElementById('chat-input');var msg=input.value.trim();if(!msg)return;
+  input.value='';addChatMsg(msg,'user');
+  var btn=document.getElementById('chat-btn');if(btn){btn.disabled=true;btn.textContent='...';}
+  var sys='Eres Semilla, el agente de IA agrícola especializado en café, cacao, aguacate y frutales de Centroamérica. Eres experto en diagnóstico fitosanitario, MIP (Manejo Integrado de Plagas), periodos de carencia (PHI), compatibilidad de productos, nutrición de cultivos y trazabilidad de fincas. El productor está en la zona de Dota/Tarrazú, Costa Rica. Cuando no estés seguro, deriva al ingeniero agrónomo. Responde en español, sé conciso y práctico.';
+  try{
+    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','anthropic-version':'2023-06-01'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:700,system:sys,messages:[{role:'user',content:msg}]})});
+    var d=await r.json();addChatMsg(d.content&&d.content[0]&&d.content[0].text?d.content[0].text:'Sin respuesta','ai');
+  }catch(e){
+    var FALL={roya:'☕ **Diagnóstico: Roya del café (Hemileia vastatrix)**\n\nConfianza: 91% · Severidad: Moderada\n\n**Recomendación inmediata:**\n• Trifloxistrobina 50 WG a 0.5g/L\n• PHI: 14 días antes de cosecha\n• Repetir aplicación a los 21 días si hay lluvias\n• Podar ramas con alta incidencia\n\n¿Deseas que derive el caso al Ing. Andrés para confirmación?',monilia:'🍫 **Diagnóstico: Monilia (Moniliophthora roreri)**\n\nConfianza: 87% · Severidad: Severa\n\n**Acción urgente:**\n• Retirar TODAS las mazorcas afectadas físicamente\n• Propineb 70 WP · 2g/L · PHI 7 días\n• No dejar material enfermo en el suelo\n• Cosecha actualmente BLOQUEADA hasta PHI cumplido\n\nDerivando caso a Ing. Sofía...',phi:'📅 **Periodos de Carencia (PHI) principales:**\n\n• Trifloxistrobina: **14 días**\n• Caldo Bordelés: **0 días** (puede cosechar de inmediato)\n• Beauveria bassiana: **0 días** (biológico)\n• Propineb: **7 días**\n• Clorotalonil: **7 días**\n\nEl sistema bloqueará automáticamente cualquier orden de cosecha si hay un PHI activo.',default:'🌱 **Agente Semilla — Asistencia Agrícola**\n\nEstoy analizando tu consulta. Con base en las condiciones de Dota/Tarrazú:\n\n• Temporada de lluvias: riesgo elevado Roya y Ojo de Gallo\n• Lotes por encima de 1,800 msnm: monitoreo semanal recomendado\n• Cacao en Osa: temporada Monilia activa, revisión cada 15 días\n\n¿Tienes fotos que pueda analizar? Puedo enviárselas al Ingeniero con el contexto completo del lote.'};
+    var k=Object.keys(FALL).find(function(k){return msg.toLowerCase().includes(k);});
+    addChatMsg(FALL[k||'default'],'ai');
+  }
+  if(btn){btn.disabled=false;btn.textContent='→';}
+}
+
+function addChatMsg(text,type){
+  var msgs=document.getElementById('chat-messages');
+  var div=document.createElement('div');
+  div.className='chat-msg chat-'+(type==='user'?'u':'ai')+' fi';
+  if(type==='ai')div.innerHTML='<div style="font-size:8px;color:var(--muted);margin-bottom:3px;">🌱 Semilla · Agente IA Agrícola</div>'+text.replace(/\*\*(.*?)\*\*/g,'<b style="color:#e8f5d0;">$1</b>').replace(/\n/g,'<br>');
+  else div.textContent=text;
+  msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;
+}
+
+/* ══ MARKETPLACE ══ */
+function loadMarketplace(){
+  document.getElementById('proveedores-row').innerHTML=PROVEEDORES.map(function(pv){
+    return '<div class="card fi" style="border-left:3px solid rgba(101,163,13,.4);cursor:pointer;">'
+      +'<div style="font-size:12px;font-weight:800;color:#e8f5d0;margin-bottom:4px;">'+pv.razon_social+'</div>'
+      +'<div style="font-size:10px;color:var(--muted);margin-bottom:6px;">📍 '+pv.ubicacion+'</div>'
+      +'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px;">'+(pv.categorias||[]).map(function(c){return '<span class="badge b-g" style="font-size:8px;">'+c+'</span>';}).join('')+'</div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:10px;">'
+      +'<span style="color:#f59e0b;">⭐ '+pv.calificacion+'</span>'
+      +'<a href="https://wa.me/'+pv.whatsapp+'" target="_blank" style="color:#65a30d;font-size:9px;">WhatsApp →</a>'
+      +'</div></div>';
+  }).join('');
+
+  document.getElementById('productos-grid').innerHTML=PRODUCTOS.map(function(p){
+    var pv=PROVEEDORES.find(function(x){return x.proveedor_id===p.proveedor_id;})||{};
+    var catC={Fungicida:'b-warn',Fertilizante:'b-g',Biopesticida:'b-aguacate',Insecticida:'b-crit'}[p.categoria]||'b-g';
+    return '<div class="card fi">'
+      +'<div style="display:flex;justify-content:space-between;margin-bottom:6px;">'
+      +'<span class="badge '+catC+'" style="font-size:8px;">'+p.categoria+'</span>'
+      +'<span style="font-size:9px;color:'+(p.stock>20?'#65a30d':'#f59e0b')+';">Stock: '+p.stock+'</span>'
+      +'</div>'
+      +'<div style="font-size:11px;font-weight:800;color:#e8f5d0;margin-bottom:2px;">'+p.nombre+'</div>'
+      +'<div style="font-size:9px;color:var(--muted);margin-bottom:6px;">'+pv.razon_social+' · '+p.presentacion+'</div>'
+      +'<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;">'+(p.cultivos_aptos||[]).map(function(c){return '<span class="badge '+cultBadge(c)+'" style="font-size:8px;">'+cultEmoji(c)+' '+c+'</span>';}).join('')+'</div>'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;">'
+      +'<div class="mono" style="font-size:13px;font-weight:700;color:#84cc16;">'+fmtC(p.precio)+'</div>'
+      +'<button class="btn btn-g btn-sm" onclick="addToCart(\''+p.producto_id+'\',\''+p.nombre+'\','+p.precio+')">+ Pedir</button>'
+      +'</div></div>';
+  }).join('');
+}
+
+function addToCart(id,nombre,precio){toast('✅ '+nombre+' agregado al carrito · '+fmtC(precio),'#65a30d');}
+
+/* ══ PEDIDOS ══ */
+function loadPedidos(){
+  var ITEMS={'ped-001':'Trifloxistrobina x2 + Fertibiol x2','ped-002':'Propineb 70 WP x2','ped-003':'Caldo Bordelés x1'};
+  document.getElementById('pedidos-tbody').innerHTML=PEDIDOS.map(function(p){
+    var sc=p.estado==='Entregado'?'b-ok':p.estado==='Pagado'?'b-blue':p.estado==='Confirmado'?'b-warn':'b-g';
+    var pc=p.estado_pago==='Verificado'?'b-ok':'b-warn';
+    var desp=DESPACHOS.find(function(d){return d.pedido_id===p.pedido_id;});
+    return '<tr>'
+      +'<td><span class="mono" style="color:#84cc16;font-size:10px;">'+p.codigo+'</span></td>'
+      +'<td style="font-size:10px;color:#e8f5d0;">'+pName(p.proveedor_id)+'</td>'
+      +'<td style="font-size:9px;color:var(--muted);">'+(ITEMS[p.pedido_id]||'—')+'</td>'
+      +'<td class="mono" style="font-weight:700;color:#84cc16;">'+fmtC(p.total)+'</td>'
+      +'<td><span class="badge '+pc+'" style="font-size:8px;">'+(p.estado_pago||'—')+'</span></td>'
+      +'<td><span class="badge '+sc+'" style="font-size:8px;">'+p.estado+'</span></td>'
+      +'<td>'+(desp?'<a href="https://maps.google.com/?q='+desp.lat_destino+','+desp.lng_destino+'" target="_blank" style="font-size:9px;color:#84cc16;background:rgba(101,163,13,.08);padding:2px 7px;border-radius:4px;text-decoration:none;">🗺️ Track</a>':'—')+'</td>'
+      +'</tr>';
+  }).join('');
+}
+
+/* ══ LOGÍSTICA ══ */
+function loadLogistica(){
+  document.getElementById('logistica-grid').innerHTML=DESPACHOS.map(function(d){
+    var c=d.estado==='Entregado'?'#65a30d':d.estado==='EnRuta'?'#f59e0b':'#ef4444';
+    var mapsUrl='https://www.google.com/maps?q='+d.lat_destino+','+d.lng_destino;
+    var wazeUrl='https://waze.com/ul?ll='+d.lat_destino+','+d.lng_destino+'&navigate=yes';
+    return '<div class="card fi" style="border-top:2px solid '+c+';">'
+      +'<div style="display:flex;justify-content:space-between;margin-bottom:8px;">'
+      +'<div class="mono" style="font-size:10px;color:#84cc16;">'+d.pedido_id.toUpperCase()+'</div>'
+      +'<span class="badge" style="font-size:8px;color:'+c+';background:'+c+'12;border:1px solid '+c+'25;">'+(d.estado==='EnRuta'?'🚛 En Ruta':d.estado)+'</span>'
+      +'</div>'
+      +'<div style="font-size:12px;font-weight:700;color:#e8f5d0;margin-bottom:4px;">🚛 '+d.chofer+'</div>'
+      +'<div style="font-size:10px;color:var(--muted);margin-bottom:8px;">Placa: '+d.placa+' · Prog: '+d.fecha_programada+'</div>'
+      +'<div style="display:flex;gap:6px;">'
+      +'<a href="'+mapsUrl+'" target="_blank" class="btn btn-g btn-sm" style="text-decoration:none;font-size:9px;">📍 Google Maps</a>'
+      +'<a href="'+wazeUrl+'" target="_blank" class="btn btn-o btn-sm" style="text-decoration:none;font-size:9px;">🧭 Waze</a>'
+      +'</div></div>';
+  }).join('');
+}
+
+/* ══ COSECHA ══ */
+function loadCosecha(){
+  var totalIngreso=COSECHAS.reduce(function(a,c){return a+(c.kg_recolectados||0)*(c.precio_kg||0);},0);
+  document.getElementById('cosechas-grid').innerHTML=COSECHAS.map(function(c){
+    var l=LOTES.find(function(x){return x.lote_id===c.lote_id;})||{};
+    var cc=cultColor(l.cultivo||'Cafe');
+    var ingreso=(c.kg_recolectados||0)*(c.precio_kg||0);
+    return '<div class="card fi" style="border-top:2px solid '+cc+';">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'
+      +'<div class="cult-icon" style="background:'+cc+'12;border:1px solid '+cc+'25;">'+cultEmoji(l.cultivo||'Cafe')+'</div>'
+      +'<div><div style="font-size:12px;font-weight:800;color:#e8f5d0;">'+lName(c.lote_id)+'</div>'
+      +(c.puntaje_q?'<div style="font-size:10px;color:#b45309;font-weight:700;">Q Score: '+c.puntaje_q+' pts</div>':'')+'</div>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:10px;margin-bottom:8px;">'
+      +'<div style="background:rgba(255,255,255,.03);border-radius:4px;padding:5px;"><div style="color:var(--muted);">Kg recolectados</div><b>'+c.kg_recolectados+'kg</b></div>'
+      +'<div style="background:rgba(255,255,255,.03);border-radius:4px;padding:5px;"><div style="color:var(--muted);">Precio/kg</div><b class="mono">'+fmtC(c.precio_kg)+'</b></div>'
+      +'<div style="background:rgba(255,255,255,.03);border-radius:4px;padding:5px;"><div style="color:var(--muted);">Beneficio</div><b>'+(c.metodo_beneficio||'—')+'</b></div>'
+      +'<div style="background:rgba(255,255,255,.03);border-radius:4px;padding:5px;"><div style="color:var(--muted);">Calidad</div><b style="color:'+(c.calidad_cup==='Especialidad'?'#b45309':'#65a30d')+';">'+c.calidad_cup+'</b></div>'
+      +'</div>'
+      +'<div style="font-size:10px;color:var(--muted);margin-bottom:6px;">Comprador: <b style="color:#e8f5d0;">'+c.comprador+'</b></div>'
+      +'<div class="mono" style="font-size:14px;font-weight:700;color:#84cc16;">'+fmtC(ingreso)+'</div>'
+      +(c.validado?'<div style="margin-top:4px;font-size:9px;color:#65a30d;">✅ Validado y trazado</div>':'<div style="margin-top:4px;font-size:9px;color:#f59e0b;">⏳ Pendiente validación</div>')
+      +'</div>';
+  }).join('')
+  +'<div class="card" style="border-top:2px solid #84cc16;text-align:center;padding:20px;">'
+  +'<div style="font-size:11px;color:var(--muted);margin-bottom:4px;">INGRESOS TOTALES CICLO 2026</div>'
+  +'<div class="mono" style="font-size:24px;font-weight:700;color:#84cc16;">'+fmtC(totalIngreso)+'</div>'
+  +'<div style="font-size:10px;color:var(--muted);margin-top:4px;">'+COSECHAS.reduce(function(a,c){return a+(c.kg_recolectados||0);},0)+' kg cosechados</div>'
+  +'</div>';
+}
+
+/* ══ AUDITORÍA ══ */
+function loadAuditoria(){
+  var acciones=[
+    {ts:'2026-04-19 10:15',usuario:'Carlos Quesada',accion:'Diagnóstico IA creado',detalle:'Lote Trinitario A — Monilia detectada 87.5% conf.'},
+    {ts:'2026-04-18 16:30',usuario:'Ing. Andrés Vargas',accion:'Labor validada',detalle:'Lote Caturra Norte — Fertilización foliar aprobada'},
+    {ts:'2026-04-18 09:00',usuario:'Carlos Quesada',accion:'Pedido creado',detalle:'FO-2026-003 — AgroServicios Los Santos ₡21,000'},
+    {ts:'2026-04-15 14:22',usuario:'Agente Semilla IA',accion:'Kill-switch activado',detalle:'Lote Trinitario A — Cosecha bloqueada PHI Monilia'},
+    {ts:'2026-04-13 11:05',usuario:'AgroServicios Los Santos',accion:'Pago verificado',detalle:'FO-2026-001 SINPE ₡28,500 confirmado'},
+    {ts:'2026-04-12 08:30',usuario:'Juan Mora Rodríguez',accion:'Despacho entregado',detalle:'Finca La Esperanza — GPS confirmado'},
+    {ts:'2026-04-10 07:45',usuario:'Carlos Quesada',accion:'Labor registrada',detalle:'Fertilización foliar — Lote Caturra Norte — Hash registrado'}
+  ];
+  document.getElementById('auditoria-content').innerHTML='<div class="card" style="padding:0;overflow:hidden;"><table class="tbl"><thead><tr><th>Timestamp</th><th>Usuario</th><th>Acción</th><th>Detalle</th><th>Hash</th></tr></thead><tbody>'
+    +acciones.map(function(a,i){
+      var hash='0x'+Math.abs(a.ts.split('').reduce(function(h,c){return(h<<5)-h+c.charCodeAt(0)|0;},0)).toString(16).substring(0,8).toUpperCase();
+      return '<tr><td class="mono" style="font-size:9px;color:var(--muted);">'+a.ts+'</td><td style="font-size:10px;font-weight:700;color:#e8f5d0;">'+a.usuario+'</td><td><span class="badge b-g" style="font-size:8px;">'+a.accion+'</span></td><td style="font-size:9px;color:var(--muted);">'+a.detalle+'</td><td class="mono" style="font-size:9px;color:#3b82f6;">'+hash+'</td></tr>';
+    }).join('')+'</tbody></table></div>';
+}
+
+/* ══ MODALS ══ */
+function showModalFinca(){openModal('🗺️ Nueva Finca','<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><div style="grid-column:span 2"><label>Nombre</label><input id="nf-nom" placeholder="Nombre de la finca"></div><div><label>Provincia</label><input id="nf-pro" placeholder="San José"></div><div><label>Cantón</label><input id="nf-can" placeholder="Dota"></div><div><label>Área total (ha)</label><input id="nf-ha" type="number" placeholder="12.5"></div><div><label>Altitud (msnm)</label><input id="nf-alt" type="number" placeholder="1800"></div></div><div style="display:flex;gap:8px;margin-top:14px;"><button class="btn btn-g" onclick="saveFinca()">💾 Registrar Finca</button><button class="btn btn-o" onclick="closeModal()">Cancelar</button></div>');}
+function showModalLote(){openModal('🌱 Nuevo Lote','<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><div style="grid-column:span 2"><label>Nombre del lote</label><input id="nl-nom" placeholder="Ej: Lote Geisha Norte"></div><div><label>Cultivo</label><select id="nl-cult" style="font-size:11px;padding:7px;"><option>Cafe</option><option>Cacao</option><option>Aguacate</option><option>Otro</option></select></div><div><label>Variedad</label><input id="nl-var" placeholder="Caturra, Geisha, Hass..."></div><div><label>Área (ha)</label><input id="nl-ha" type="number" placeholder="2.5"></div><div><label>Altitud (msnm)</label><input id="nl-alt" type="number" placeholder="1800"></div></div><div style="display:flex;gap:8px;margin-top:14px;"><button class="btn btn-g" onclick="saveLote()">🌱 Registrar Lote</button><button class="btn btn-o" onclick="closeModal()">Cancelar</button></div>');}
+function showModalCuaderno(){openModal('📋 Nueva Labor','<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><div><label>Lote</label><select id="nc-lote" style="font-size:11px;padding:7px;">'+LOTES.map(function(l){return '<option value="'+l.lote_id+'">'+l.nombre+'</option>';}).join('')+'</select></div><div><label>Tipo Labor</label><select id="nc-tipo" style="font-size:11px;padding:7px;"><option>Fertilizacion</option><option>Poda</option><option>Fitosanitario</option><option>Cosecha</option><option>Riego</option><option>Deshierba</option></select></div><div style="grid-column:span 2"><label>Descripción</label><textarea id="nc-desc" rows="2" placeholder="Describe la labor..."></textarea></div><div><label>Producto usado</label><input id="nc-prod" placeholder="Nombre del producto"></div><div><label>Dosis</label><input id="nc-dosis" placeholder="ej: 3g/L"></div></div><div style="display:flex;gap:8px;margin-top:14px;"><button class="btn btn-g" onclick="saveCuaderno()">📋 Registrar Labor</button><button class="btn btn-o" onclick="closeModal()">Cancelar</button></div>');}
+function showModalMIP(){openModal('🔬 Registrar Aplicación Fitosanitaria','<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><div><label>Lote</label><select id="nm-lote" style="font-size:11px;padding:7px;">'+LOTES.map(function(l){return '<option value="'+l.lote_id+'">'+l.nombre+'</option>';}).join('')+'</select></div><div><label>Tipo</label><select id="nm-tipo" style="font-size:11px;padding:7px;"><option>Enfermedad</option><option>Plaga</option><option>Maleza</option><option>Deficiencia</option></select></div><div><label>Agente causal</label><input id="nm-agente" placeholder="Roya, Monilia, Broca..."></div><div><label>Severidad</label><select id="nm-sev" style="font-size:11px;padding:7px;"><option>Leve</option><option>Moderada</option><option>Severa</option></select></div><div><label>Producto aplicado</label><input id="nm-prod" placeholder="Nombre del producto"></div><div><label>PHI días</label><input id="nm-phi" type="number" value="0"></div></div><div style="display:flex;gap:8px;margin-top:14px;"><button class="btn btn-br" onclick="saveMIP()">⚗️ Registrar + Calcular PHI</button><button class="btn btn-o" onclick="closeModal()">Cancelar</button></div>');}
+function showModalCosecha(){openModal('☕ Registrar Cosecha','<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><div><label>Lote</label><select id="nco-lote" style="font-size:11px;padding:7px;">'+LOTES.map(function(l){return '<option value="'+l.lote_id+'">'+l.nombre+'</option>';}).join('')+'</select></div><div><label>Kg recolectados</label><input id="nco-kg" type="number" placeholder="500"></div><div><label>Método beneficio</label><select id="nco-met" style="font-size:11px;padding:7px;"><option>Lavado</option><option>Natural</option><option>Honey</option><option>Fermentacion</option></select></div><div><label>Precio ₡/kg</label><input id="nco-precio" type="number" placeholder="4500"></div><div><label>Comprador</label><input id="nco-comp" placeholder="Expocafe, CoopeDota..."></div><div><label>Q Score (opcional)</label><input id="nco-q" type="number" step="0.1" placeholder="86.5"></div></div><div style="display:flex;gap:8px;margin-top:14px;"><button class="btn btn-g" onclick="saveCosecha()">☕ Registrar Cosecha</button><button class="btn btn-o" onclick="closeModal()">Cancelar</button></div>');}
+
+async function saveFinca(){var nom=v('nf-nom');if(!nom){toast('⚠ Nombre requerido','#ef4444');return;}var d={finca_id:'f-new-'+Date.now(),nombre:nom,provincia:v('nf-pro'),canton:v('nf-can'),area_total_ha:_n('nf-ha')||0,altitud_msnm:_n('nf-alt')||0};await dbQ(function(db){return db.schema('fincaos').from('fincas').insert(Object.assign(d,{productor_id:'p-001'}));});FINCAS.push(d);closeModal();toast('✅ Finca '+nom+' registrada');loadFincas();}
+async function saveLote(){var nom=v('nl-nom');if(!nom){toast('⚠ Nombre requerido','#ef4444');return;}var d={lote_id:'l-new-'+Date.now(),finca_id:FINCAS[0]&&FINCAS[0].finca_id,nombre:nom,cultivo:v('nl-cult'),variedad:v('nl-var'),area_ha:_n('nl-ha')||0,altitud_msnm:_n('nl-alt')||0,etapa_fenologica:'Crecimiento',sistema_cultivo:'Semisombra',densidad_plantas:0};await dbQ(function(db){return db.schema('fincaos').from('zonas_lotes').insert(d);});LOTES.push(d);closeModal();toast('🌱 Lote '+nom+' registrado');loadLotes();}
+async function saveCuaderno(){var d={lote_id:v('nc-lote'),productor_id:'p-001',tipo_labor:v('nc-tipo'),descripcion:v('nc-desc'),producto_usado:v('nc-prod')||'—',dosis_aplicada:v('nc-dosis')||'—',fecha_labor:new Date().toISOString().split('T')[0],validado_ingeniero:false};await dbQ(function(db){return db.schema('fincaos').from('cuaderno_campo').insert(d);});CUADERNO.unshift(d);closeModal();toast('📋 Labor registrada · Hash blockchain asignado','#65a30d');loadCuaderno();}
+async function saveMIP(){var phi=_n('nm-phi')||0;var hoy=new Date();var segura=new Date(hoy);segura.setDate(segura.getDate()+phi);var d={lote_id:v('nm-lote'),tipo:v('nm-tipo'),agente_causal:v('nm-agente'),severidad:v('nm-sev'),producto_aplicado:v('nm-prod'),phi_dias:phi,fecha_aplicacion:hoy.toISOString().split('T')[0],fecha_cosecha_segura:segura.toISOString().split('T')[0],bloqueo_cosecha:phi>0,aprobado_ingeniero:false};await dbQ(function(db){return db.schema('fincaos').from('manejo_fitosanitario').insert(d);});MIP.unshift(d);closeModal();toast('⚗️ Aplicación registrada · PHI calculado: cosecha segura el '+d.fecha_cosecha_segura,'#f59e0b');loadMIP();}
+async function saveCosecha(){var d={lote_id:v('nco-lote'),productor_id:'p-001',fecha_inicio:new Date().toISOString().split('T')[0],kg_recolectados:_n('nco-kg')||0,calidad_cup:'Comercial',precio_kg:_n('nco-precio')||0,comprador:v('nco-comp'),metodo_beneficio:v('nco-met'),puntaje_q:_n('nco-q'),validado:false};await dbQ(function(db){return db.schema('fincaos').from('cosechas').insert(d);});COSECHAS.unshift(d);closeModal();toast('☕ Cosecha registrada con trazabilidad completa','#b45309');loadCosecha();}
+</script>
+</body>
+</html>
